@@ -1,0 +1,15 @@
+{
+  "name": "hud-reo-finder",
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "dev": "bun run src/index.ts",
+    "fetch": "bun run src/cli.ts"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5.4"
+  },
+  "dependencies": {}
+}
