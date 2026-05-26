@@ -18,7 +18,7 @@ export function renderHtml(properties: EnrichedProperty[]): string {
   const rows = properties
     .sort((a, b) => b.tierScore - a.tierScore)
     .map((p) => {
-      const hudLink = `https://www.hudhomestore.gov/Listing/PropertyDetails.aspx?caseNumber=${encodeURIComponent(p.caseNumber)}`;
+      const mapLink = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.fullAddress)}`;
       const latLon = p.lat != null && p.lon != null ? `${p.lat.toFixed(5)}, ${p.lon.toFixed(5)}` : "—";
       const revite = p.revitalizationArea ? `✓ ${escapeHtml(p.revitalizationArea)}` : "—";
       const val = p.estimatedValue ? `$${p.estimatedValue.toLocaleString()}` : "—";
@@ -32,7 +32,7 @@ export function renderHtml(properties: EnrichedProperty[]): string {
       return `
     \u003ctr class="${tierClass(p.tier)}"\u003e
       \u003ctd\u003e\u003cspan class="tier-badge ${tierClass(p.tier)}"\u003e${escapeHtml(p.tier)}\u003c/span\u003e\u003c/td\u003e
-      \u003ctd\u003e\u003ca href="${hudLink}" target="_blank" rel="noopener"\u003e${escapeHtml(p.caseNumber)}\u003c/a\u003e\u003c/td\u003e
+      \u003ctd\u003e\u003ca href="${mapLink}" target="_blank" rel="noopener"\u003e${escapeHtml(p.caseNumber)}\u003c/a\u003e\u003c/td\u003e
       \u003ctd\u003e${escapeHtml(p.fullAddress)}\u003c/td\u003e
       \u003ctd\u003e${escapeHtml(p.city)}\u003c/td\u003e
       \u003ctd\u003e${escapeHtml(p.zip)}\u003c/td\u003e
