@@ -1,5 +1,6 @@
 import type { Property } from "./types.js";
-import type { EnrichedProperty, Enrichment } from "./enrichment.ts";
+import type { EnrichedProperty, Enrichment } from "./enrichment.js";
+import { getManualPrice } from "./manual-prices.js";
 
 const LIQUID_BEDS_RANGE = { min: 2, max: 4 };
 const LIQUID_BATHS_MIN = 1.5;
@@ -16,49 +17,46 @@ function liquidConfig(
   );
 }
 
-function calcTier(
+export function scoreProperty(
   p: Property,
-  e: Enrichment
-): { tier: "A" | "B" | "C"; score: number; notes: string[] } {
-  const notes: string[] = [];
-  let score = 0;
+  enrichment: Enrichment,
+  listPrice: number | null
+): { tier: "A" | "B" | "C"; score: number; notes: string[]; equitySpread: number | null } {
+  const equitySpread = (enrichment.estimatedValue != null && listPrice != null)
+    ? enrichment.estimatedValue - listPrice
+    : null;
 
-  // Revite is heavy weight
+  let score = 0;
+  const notes: string[] = [];
   if (p.revitalizationArea) {
     score += 50;
     notes.push(`revite:${p.revitalizationArea}`);
   }
-
-  // Liquid config is medium weight
-  if (liquidConfig(e.beds, e.baths)) {
+  if (liquidConfig(enrichment.beds, enrichment.baths)) {
     score += 30;
     notes.push("liquid:beds-baths");
   }
-
-  // Estimated value is present (RentCast worked)
-  if (e.estimatedValue != null && e.estimatedValue > 0) {
+  if (enrichment.estimatedValue != null && enrichment.estimatedValue > 0) {
     score += 20;
-    notes.push(`est.val:$${e.estimatedValue.toLocaleString()}`);
+    notes.push(`est.val:$${enrichment.estimatedValue.toLocaleString()}`);
+  }
+  if (listPrice != null) {
+    notes.push(`list:$${listPrice.toLocaleString()}`);
+    if (equitySpread != null) {
+      notes.push(`equity:$${equitySpread.toLocaleString()}`);
+    }
   }
 
   const tier = score >= 60 ? "A" : score >= 30 ? "B" : "C";
-
-  return { tier, score, notes };
+  return { tier, score, notes, equitySpread };
 }
 
-export function enrichAndScore(p: Property): EnrichedProperty {
-  const e: Enrichment = {
-    estimatedValue: null,
-    estimatedRent: null,
-    beds: null,
-    baths: null,
-    sqft: null,
-    source: "none",
-    fetchedAt: new Date().toISOString(),
-  };
-
-  const t = calcTier(p, e);
-
+export function buildEnriched(
+  p: Property,
+  enrichment: Enrichment,
+  scored: { tier: "A" | "B" | "C"; score: number; notes: string[]; equitySpread: number | null },
+  listPrice: number | null
+): EnrichedProperty {
   return {
     caseNumber: p.caseNumber,
     fullAddress: p.fullAddress,
@@ -67,15 +65,27 @@ export function enrichAndScore(p: Property): EnrichedProperty {
     lat: p.lat,
     lon: p.lon,
     revitalizationArea: p.revitalizationArea,
-    estimatedValue: e.estimatedValue,
-    estimatedRent: e.estimatedRent,
-    beds: e.beds,
-    baths: e.baths,
-    sqft: e.sqft,
-    valueSource: e.source,
-    enrichmentFetchedAt: e.fetchedAt,
-    tier: t.tier,
-    tierScore: t.score,
-    notes: t.notes,
+    estimatedValue: enrichment.estimatedValue,
+    estimatedRent: enrichment.estimatedRent,
+    beds: enrichment.beds,
+    baths: enrichment.baths,
+    sqft: enrichment.sqft,
+    valueSource: enrichment.source,
+    enrichmentFetchedAt: enrichment.fetchedAt,
+    tier: scored.tier,
+    tierScore: scored.score,
+    notes: scored.notes,
+    listPrice,
+    equitySpread: scored.equitySpread,
+    equityScore: null,
   };
+}
+
+export async function enrichAndScore(
+  p: Property,
+  enrichment: Enrichment
+): Promise<EnrichedProperty> {
+  const listPrice = await getManualPrice(p.caseNumber);
+  const scored = scoreProperty(p, enrichment, listPrice);
+  return buildEnriched(p, enrichment, scored, listPrice);
 }

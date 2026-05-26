@@ -29,6 +29,11 @@ export interface EnrichedProperty {
   tier: "A" | "B" | "C";
   tierScore: number;
   notes: string[];
+  // manual price
+  listPrice: number | null;
+  equitySpread: number | null;
+  // equity rank
+  equityScore: number | null;
 }
 
 export type Enricher = (address: string, zip: string) => Promise<Enrichment>;

@@ -2,6 +2,8 @@ import { fetchAllProperties } from "./arcgis-client.js";
 import { enrichAndScore } from "./scoring.js";
 import { renderHtml } from "./renderer.js";
 import { setManualPrice, listManualPrices } from "./manual-prices.js";
+import { quotaAwareEnrich } from "./quota-guard.js";
+import { getCallUsage } from "./cache.js";
 
 async function main() {
   const args = process.argv.slice(2);
@@ -20,15 +22,32 @@ async function main() {
   const properties = await fetchAllProperties();
   console.log(`Fetched ${properties.length} properties.`);
 
-  const enriched = await Promise.all(properties.map(enrichAndScore));
+  console.log("Enriching with RentCast...");
+  const enriches = await quotaAwareEnrich(properties);
+
+  console.log("Scoring...");
+  const enriched = await Promise.all(properties.map(async (p) => {
+    const e = enriches.get(p.caseNumber) ?? {
+      estimatedValue: null,
+      estimatedRent: null,
+      beds: null,
+      baths: null,
+      sqft: null,
+      source: "none",
+      fetchedAt: new Date().toISOString(),
+    };
+    return enrichAndScore(p, e);
+  }));
 
   const aCount = enriched.filter((p) => p.tier === "A").length;
   const bCount = enriched.filter((p) => p.tier === "B").length;
   const cCount = enriched.filter((p) => p.tier === "C").length;
   const reviteCount = enriched.filter((p) => p.revitalizationArea).length;
 
+  const usage = getCallUsage();
   console.log(`\nTier A: ${aCount} | Tier B: ${bCount} | Tier C: ${cCount}`);
   console.log(`Revite areas: ${reviteCount}`);
+  console.log(`Quota used: ${usage.made} | remaining: ${usage.remaining}`);
 
   const html = renderHtml(enriched);
   const outPath = "/tmp/hud-reo-fl.html";
