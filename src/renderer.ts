@@ -23,10 +23,9 @@ export function renderHtml(properties: EnrichedProperty[]): string {
       const revite = p.revitalizationArea ? `✓ ${escapeHtml(p.revitalizationArea)}` : "—";
       const val = p.estimatedValue ? `$${p.estimatedValue.toLocaleString()}` : "—";
       const rent = p.estimatedRent ? `$${p.estimatedRent.toLocaleString()}/mo` : "—";
-      const bdBt =
-        p.beds != null || p.baths != null
-          ? `${p.beds ?? "?"}bd / ${p.baths ?? "?"}ba`
-          : "—";
+      const equity = p.equitySpread != null ? `${(p.equitySpreadPct! * 100).toFixed(1)}%` : "—";
+      const yieldStr = p.grossYield != null ? `${(p.grossYield * 100).toFixed(1)}%` : "—";
+      const cap = p.capRate != null ? `${(p.capRate * 100).toFixed(1)}%` : "—";
       const notes = p.notes.map((n) => `\n            \u003cspan class="note-tag"\u003e${escapeHtml(n)}\u003c/span\u003e`).join("");
 
       return `
@@ -39,7 +38,9 @@ export function renderHtml(properties: EnrichedProperty[]): string {
       \u003ctd\u003e${escapeHtml(revite)}\u003c/td\u003e
       \u003ctd\u003e${val}\u003c/td\u003e
       \u003ctd\u003e${rent}\u003c/td\u003e
-      \u003ctd\u003e${bdBt}\u003c/td\u003e
+      \u003ctd\u003e${equity}\u003c/td\u003e
+      \u003ctd\u003e${yieldStr}\u003c/td\u003e
+      \u003ctd\u003e${cap}\u003c/td\u003e
       \u003ctd\u003e${latLon}\u003c/td\u003e
       \u003ctd\u003e\u003cdiv class="notes"\u003e${notes}\u003c/div\u003e\u003c/td\u003e
     \u003c/tr\u003e`;
@@ -88,7 +89,7 @@ export function renderHtml(properties: EnrichedProperty[]): string {
 \u003c/div\u003e
 \u003ctable\u003e
   \u003cthead\u003e
-    \u003ctr\u003e\u003cth\u003eTier\u003c/th\u003e\u003cth\u003eCase\u003c/th\u003e\u003cth\u003eAddress\u003c/th\u003e\u003cth\u003eCity\u003c/th\u003e\u003cth\u003eZip\u003c/th\u003e\u003cth\u003eRevite\u003c/th\u003e\u003cth\u003eEst. Value\u003c/th\u003e\u003cth\u003eEst. Rent\u003c/th\u003e\u003cth\u003eBd/Ba\u003c/th\u003e\u003cth\u003eLat/Lon\u003c/th\u003e\u003cth\u003eNotes\u003c/th\u003e\u003c/tr\u003e
+    \u003ctr\u003e\u003cth\u003eTier\u003c/th\u003e\u003cth\u003eCase\u003c/th\u003e\u003cth\u003eAddress\u003c/th\u003e\u003cth\u003eCity\u003c/th\u003e\u003cth\u003eZip\u003c/th\u003e\u003cth\u003eRevite\u003c/th\u003e\u003cth\u003eEst. Value\u003c/th\u003e\u003cth\u003eEst. Rent\u003c/th\u003e\u003cth\u003eEquity%\u003c/th\u003e\u003cth\u003eYield\u003c/th\u003e\u003cth\u003eCap%\u003c/th\u003e\u003cth\u003eLat/Lon\u003c/th\u003e\u003cth\u003eNotes\u003c/th\u003e\u003c/tr\u003e
   \u003c/thead\u003e
   \u003ctbody\u003e${rows}
   \u003c/tbody\u003e

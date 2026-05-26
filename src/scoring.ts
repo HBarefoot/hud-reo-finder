@@ -21,9 +21,18 @@ export function scoreProperty(
   p: Property,
   enrichment: Enrichment,
   listPrice: number | null
-): { tier: "A" | "B" | "C"; score: number; notes: string[]; equitySpread: number | null } {
+): { tier: "A" | "B" | "C"; score: number; notes: string[]; equitySpread: number | null; equitySpreadPct: number | null; grossYield: number | null; capRate: number | null } {
   const equitySpread = (enrichment.estimatedValue != null && listPrice != null)
     ? enrichment.estimatedValue - listPrice
+    : null;
+  const equitySpreadPct = (equitySpread != null && listPrice != null && listPrice > 0)
+    ? (equitySpread / listPrice)
+    : null;
+  const grossYield = (enrichment.estimatedRent != null && listPrice != null && listPrice > 0)
+    ? ((enrichment.estimatedRent * 12) / listPrice)
+    : null;
+  const capRate = (enrichment.estimatedRent != null && enrichment.estimatedValue != null && enrichment.estimatedValue > 0)
+    ? ((enrichment.estimatedRent * 12 * 0.6) / enrichment.estimatedValue) // 60% NOI rough
     : null;
 
   let score = 0;
@@ -48,13 +57,13 @@ export function scoreProperty(
   }
 
   const tier = score >= 60 ? "A" : score >= 30 ? "B" : "C";
-  return { tier, score, notes, equitySpread };
+  return { tier, score, notes, equitySpread, equitySpreadPct, grossYield, capRate };
 }
 
 export function buildEnriched(
   p: Property,
   enrichment: Enrichment,
-  scored: { tier: "A" | "B" | "C"; score: number; notes: string[]; equitySpread: number | null },
+  scored: { tier: "A" | "B" | "C"; score: number; notes: string[]; equitySpread: number | null; equitySpreadPct: number | null; grossYield: number | null; capRate: number | null },
   listPrice: number | null
 ): EnrichedProperty {
   return {
@@ -78,6 +87,9 @@ export function buildEnriched(
     listPrice,
     equitySpread: scored.equitySpread,
     equityScore: null,
+    equitySpreadPct: scored.equitySpreadPct,
+    grossYield: scored.grossYield,
+    capRate: scored.capRate,
   };
 }
 

@@ -34,6 +34,9 @@ export interface EnrichedProperty {
   equitySpread: number | null;
   // equity rank
   equityScore: number | null;
+  equitySpreadPct: number | null;
+  grossYield: number | null;
+  capRate: number | null;
 }
 
 export type Enricher = (address: string, zip: string) => Promise<Enrichment>;

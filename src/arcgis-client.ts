@@ -51,8 +51,12 @@ function normalize(feature: RawFeature): Property {
 }
 
 export async function fetchAllProperties(
-  config: ArcGISConfig = defaultConfig
+  stateOrConfig: string | ArcGISConfig = defaultConfig
 ): Promise<Property[]> {
+  const config: ArcGISConfig =
+    typeof stateOrConfig === "string"
+      ? { ...defaultConfig, stateCode: stateOrConfig }
+      : stateOrConfig;
   const results: Property[] = [];
   let offset = 0;
   let hasMore = true;
