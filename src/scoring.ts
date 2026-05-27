@@ -67,7 +67,7 @@ export function scoreProperty(
     }
   }
 
-  const tier = score >= 90 ? "A" : score >= 50 ? "B" : "C";
+  const tier = score >= 70 ? "A" : score >= 20 ? "B" : "C";
   return { tier, score, notes, equitySpread, equitySpreadPct, grossYield, capRate };
 }
 
