@@ -5,6 +5,8 @@ import { getManualPrice } from "./manual-prices.js";
 const LIQUID_BEDS_RANGE = { min: 2, max: 4 };
 const LIQUID_BATHS_MIN = 1.5;
 
+const MULTIFAMILY_TYPES = new Set(["Duplex", "Triplex", "Quadruplex", "Multi-Family", "Fourplex"]);
+
 function liquidConfig(
   beds: number | null,
   baths: number | null
@@ -15,6 +17,11 @@ function liquidConfig(
     beds <= LIQUID_BEDS_RANGE.max &&
     baths >= LIQUID_BATHS_MIN
   );
+}
+
+function isMultfamily(propertyType: string | null): boolean {
+  if (!propertyType) return false;
+  return MULTIFAMILY_TYPES.has(propertyType);
 }
 
 export function scoreProperty(
@@ -41,6 +48,10 @@ export function scoreProperty(
     score += 50;
     notes.push(`revite:${p.revitalizationArea}`);
   }
+  if (isMultfamily(enrichment.propertyType)) {
+    score += 40;
+    notes.push(`multifamily:${enrichment.propertyType}`);
+  }
   if (liquidConfig(enrichment.beds, enrichment.baths)) {
     score += 30;
     notes.push("liquid:beds-baths");
@@ -56,7 +67,7 @@ export function scoreProperty(
     }
   }
 
-  const tier = score >= 60 ? "A" : score >= 30 ? "B" : "C";
+  const tier = score >= 90 ? "A" : score >= 50 ? "B" : "C";
   return { tier, score, notes, equitySpread, equitySpreadPct, grossYield, capRate };
 }
 
@@ -79,6 +90,7 @@ export function buildEnriched(
     beds: enrichment.beds,
     baths: enrichment.baths,
     sqft: enrichment.sqft,
+    propertyType: enrichment.propertyType,
     valueSource: enrichment.source,
     enrichmentFetchedAt: enrichment.fetchedAt,
     tier: scored.tier,

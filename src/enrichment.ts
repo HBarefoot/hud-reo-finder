@@ -5,6 +5,7 @@ export interface Enrichment {
   beds: number | null;
   baths: number | null;
   sqft: number | null;
+  propertyType: string | null; // "Duplex", "Triplex", "Single Family", etc.
   source: string;
   fetchedAt: string;
 }
@@ -23,6 +24,7 @@ export interface EnrichedProperty {
   beds: number | null;
   baths: number | null;
   sqft: number | null;
+  propertyType: string | null;
   valueSource: string;
   enrichmentFetchedAt: string | null;
   // tier
@@ -49,6 +51,7 @@ export async function nullEnricher(_address: string, _zip: string): Promise<Enri
     beds: null,
     baths: null,
     sqft: null,
+    propertyType: null,
     source: "none",
     fetchedAt: new Date().toISOString(),
   };

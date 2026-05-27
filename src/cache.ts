@@ -23,10 +23,15 @@ function getDb(): Database {
         beds INTEGER,
         baths REAL,
         sqft INTEGER,
+        propertyType TEXT,
         source TEXT NOT NULL,
         fetchedAt TEXT NOT NULL
       );
     `);
+    // Migration: add propertyType column if missing (legacy db)
+    try {
+      db.run("ALTER TABLE enrichment_cache ADD COLUMN propertyType TEXT");
+    } catch (_) { /* already exists */ }
     db.exec(`
       CREATE TABLE IF NOT EXISTS call_log (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -64,6 +69,7 @@ export async function getCachedEnrichment(caseNum: string) {
     beds: number | null;
     baths: number | null;
     sqft: number | null;
+    propertyType: string | null;
     source: string;
     fetchedAt: string;
   };
@@ -77,19 +83,21 @@ export async function setCachedEnrichment(
     beds: number | null;
     baths: number | null;
     sqft: number | null;
+    propertyType: string | null;
     source: string;
     fetchedAt: string;
   }
 ): Promise<void> {
   getDb().run(
-    `INSERT INTO enrichment_cache (caseNum, estimatedValue, estimatedRent, beds, baths, sqft, source, fetchedAt)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `INSERT INTO enrichment_cache (caseNum, estimatedValue, estimatedRent, beds, baths, sqft, propertyType, source, fetchedAt)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT(caseNum) DO UPDATE SET
        estimatedValue=excluded.estimatedValue,
        estimatedRent=excluded.estimatedRent,
        beds=excluded.beds,
        baths=excluded.baths,
        sqft=excluded.sqft,
+       propertyType=excluded.propertyType,
        source=excluded.source,
        fetchedAt=excluded.fetchedAt`,
     [
@@ -99,6 +107,7 @@ export async function setCachedEnrichment(
       data.beds ?? null,
       data.baths ?? null,
       data.sqft ?? null,
+      data.propertyType ?? null,
       data.source,
       data.fetchedAt,
     ]

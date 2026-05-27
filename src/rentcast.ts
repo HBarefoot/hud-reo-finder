@@ -1,68 +1,83 @@
-// Build RentCast bridge for property enrichment
-// Free tier: 50 calls/month from RapidAPI. Keep it optional.
+// RentCast bridge — uses /v1/avm/value endpoint
+// Returns: estimatedValue (price), beds/baths/sqft from subjectProperty
+// Note: rent estimate omitted to stay within single call per property (40 cap = 40 lookups)
 
 import type { Enrichment } from "./enrichment.js";
 
 const RENTCAST_API_KEY = process.env.RENTCAST_API_KEY ?? "";
-const RAPIDAPI_KEY = process.env.RENTCAST_RAPIDAPI_KEY ?? "";
 
-async function rentcastEnrichAddress(
-  address: string
-): Promise<Partial<Enrichment>> {
-  if (!RENTCAST_API_KEY && !RAPIDAPI_KEY) {
-    return { source: "none" };
+async function fetchWithAuth(url: string): Promise<Response> {
+  return fetch(url, {
+    headers: {
+      "Accept": "application/json",
+      "X-Api-Key": RENTCAST_API_KEY,
+    },
+  });
+}
+
+function parseRentCastValue(data: any): any {
+  const sp = data.subjectProperty ?? {};
+  return {
+    estimatedValue: typeof data.price === "number" ? data.price : null,
+    estimatedRent: typeof data.estimatedMonthlyRent === "number" ? data.estimatedMonthlyRent : null,
+    beds: typeof sp.bedrooms === "number" ? sp.bedrooms : null,
+    baths: typeof sp.bathrooms === "number" ? sp.bathrooms : null,
+    sqft: typeof sp.squareFootage === "number" ? sp.squareFootage : null,
+    propertyType: typeof sp.propertyType === "string" ? sp.propertyType : null,
+    source: "rentcast",
+    fetchedAt: new Date().toISOString(),
+  };
+}
+
+// Stage 1: value + propertyType + beds/baths (1 call)
+export async function enrichProperty(address: string): Promise<Enrichment> {
+  if (!RENTCAST_API_KEY) {
+    return {
+      estimatedValue: null, estimatedRent: null, beds: null, baths: null, sqft: null, propertyType: null,
+      source: "none", fetchedAt: new Date().toISOString(),
+    };
   }
 
   try {
-    const headers: Record<string, string> = {
-      "Accept": "application/json",
-    };
-    if (RENTCAST_API_KEY) {
-      headers["X-RapidAPI-Key"] = RENTCAST_API_KEY;
-      headers["X-RapidAPI-Host"] = "rentcast.p.rapidapi.com";
-    } else {
-      headers["Authorization"] = `Bearer ${RENTCAST_API_KEY}`;
-    }
-
-    const url = `https://api.rentcast.io/v1/avm/address?address=${encodeURIComponent(address)}`;
-    const res = await fetch(url, { headers });
+    const url = `https://api.rentcast.io/v1/avm/value?address=${encodeURIComponent(address)}`;
+    const res = await fetchWithAuth(url);
 
     if (!res.ok) {
-      // Free or key exhausted — degrade gracefully
       console.warn(`RentCast HTTP ${res.status} for ${address}`);
-      return { source: "rentcast-error" };
+      return { source: "rentcast-error" } as Enrichment;
     }
 
-    const data = (await res.json()) as Record<string, any>;
+    const data = await res.json() as any;
+    return parseRentCastValue(data) as Enrichment;
+  } catch (err) {
+    console.warn(`RentCast error: ${(err as Error).message}`);
+    return { source: "rentcast-error" } as Enrichment;
+  }
+}
 
+// Stage 2: rent estimate only (used for buy-box shortlist)
+export async function enrichRent(address: string): Promise<{ estimatedRent: number | null; source: string; fetchedAt: string }> {
+  if (!RENTCAST_API_KEY) {
+    return { estimatedRent: null, source: "none", fetchedAt: new Date().toISOString() };
+  }
+
+  try {
+    const url = `https://api.rentcast.io/v1/avm/rent/address?address=${encodeURIComponent(address)}`;
+    const res = await fetchWithAuth(url);
+
+    if (!res.ok) {
+      console.warn(`RentCast rent HTTP ${res.status} for ${address}`);
+      return { estimatedRent: null, source: "rentcast-error", fetchedAt: new Date().toISOString() };
+    }
+
+    const data = await res.json() as any;
     return {
-      estimatedValue: typeof data.estimatedValue === "number" ? data.estimatedValue : null,
-      estimatedRent: typeof data.estimatedMonthlyRent === "number" ? data.estimatedMonthlyRent : null,
-      beds: typeof data.bedrooms === "number" ? data.bedrooms : null,
-      baths: typeof data.bathrooms === "number" ? data.bathrooms : null,
-      sqft: typeof data.squareFootage === "number" ? data.squareFootage : null,
+      estimatedRent: typeof data.rent === "number" ? data.rent : null,
       source: "rentcast",
       fetchedAt: new Date().toISOString(),
     };
   } catch (err) {
-    console.warn(`RentCast error: ${(err as Error).message}`);
-    return { source: "rentcast-error" };
+    console.warn(`RentCast rent error: ${(err as Error).message}`);
+    return { estimatedRent: null, source: "rentcast-error", fetchedAt: new Date().toISOString() };
   }
-}
-
-export async function enrichProperty(address: string): Promise<Enrichment> {
-  // Try primary endpoint with full address
-  const primary = await rentcastEnrichAddress(address);
-  if (primary.source === "rentcast") return primary as Enrichment;
-
-  // Fallback: no enrichment
-  return {
-    estimatedValue: null,
-    estimatedRent: null,
-    beds: null,
-    baths: null,
-    sqft: null,
-    source: "none",
-    fetchedAt: new Date().toISOString(),
-  };
 }

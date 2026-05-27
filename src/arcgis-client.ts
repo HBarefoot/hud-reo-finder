@@ -3,8 +3,14 @@ import type { ArcGISResponse, Property, RawFeature } from "./types.js";
 import { mercatorToLatLon } from "./mercator.js";
 
 function buildUrl(config: ArcGISConfig, offset: number): string {
+  let where = `STATE_CODE='${config.stateCode}'`;
+  if (config.zipPrefixes && config.zipPrefixes.length > 0) {
+    const zipConds = config.zipPrefixes.map(z => `DISPLAY_ZIP_CODE LIKE '${z}%'`).join(" OR ");
+    where += ` AND (${zipConds})`;
+  }
+
   const params = new URLSearchParams({
-    where: `STATE_CODE='${config.stateCode}'`,
+    where,
     outFields: config.outFields.join(","),
     returnGeometry: String(config.returnGeometry),
     resultOffset: String(offset),

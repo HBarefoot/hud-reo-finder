@@ -4,11 +4,15 @@ export const HUD_ARCGIS_URL =
 export const DEFAULT_STATE = "FL";
 export const PAGE_SIZE = 1000;
 
+// Buy-box: Miami-Dade (330**, 331**, 332**) + Broward (333**)
+export const BUY_BOX_ZIP_PREFIXES = ["330", "331", "332", "333"];
+
 export interface ArcGISConfig {
   stateCode: string;
   pageSize: number;
   outFields: string[];
   returnGeometry: boolean;
+  zipPrefixes?: string[]; // if set, only return props with these ZIP prefixes
 }
 
 export const defaultConfig: ArcGISConfig = {

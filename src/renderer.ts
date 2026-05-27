@@ -15,37 +15,38 @@ function tierClass(tier: string): string {
 }
 
 export function renderHtml(properties: EnrichedProperty[]): string {
-  const rows = properties
-    .sort((a, b) => b.tierScore - a.tierScore)
-    .map((p) => {
-      const mapLink = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.fullAddress)}`;
-      const latLon = p.lat != null && p.lon != null ? `${p.lat.toFixed(5)}, ${p.lon.toFixed(5)}` : "—";
-      const revite = p.revitalizationArea ? `✓ ${escapeHtml(p.revitalizationArea)}` : "—";
-      const val = p.estimatedValue ? `$${p.estimatedValue.toLocaleString()}` : "—";
-      const rent = p.estimatedRent ? `$${p.estimatedRent.toLocaleString()}/mo` : "—";
-      const equity = p.equitySpread != null ? `${(p.equitySpreadPct! * 100).toFixed(1)}%` : "—";
-      const yieldStr = p.grossYield != null ? `${(p.grossYield * 100).toFixed(1)}%` : "—";
-      const cap = p.capRate != null ? `${(p.capRate * 100).toFixed(1)}%` : "—";
-      const notes = p.notes.map((n) => `\n            \u003cspan class="note-tag"\u003e${escapeHtml(n)}\u003c/span\u003e`).join("");
+  let rows = "";
+  const sorted = [...properties].sort((a, b) => b.tierScore - a.tierScore);
 
-      return `
+  for (const p of sorted) {
+    const mapLink = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.fullAddress)}`;
+    const latLon = p.lat != null && p.lon != null ? `${p.lat.toFixed(5)}, ${p.lon.toFixed(5)}` : "—";
+    const val = p.estimatedValue != null ? `$${p.estimatedValue.toLocaleString()}` : "—";
+    const rent = p.estimatedRent != null ? `$${p.estimatedRent.toLocaleString()}` : "—";
+    const ptype = p.propertyType ?? "—";
+    const equity = p.equitySpread != null ? `${(p.equitySpreadPct! * 100).toFixed(1)}%` : "—";
+    const yieldStr = p.grossYield != null ? `${(p.grossYield * 100).toFixed(1)}%` : "—";
+    const capStr = p.capRate != null ? `${(p.capRate * 100).toFixed(1)}%` : "—";
+    const notes = p.notes.length ? p.notes.join("; ") : "";
+
+    rows += `
     \u003ctr class="${tierClass(p.tier)}"\u003e
-      \u003ctd\u003e\u003cspan class="tier-badge ${tierClass(p.tier)}"\u003e${escapeHtml(p.tier)}\u003c/span\u003e\u003c/td\u003e
+      \u003ctd\u003e\u003cspan class="tier-badge ${tierClass(p.tier)}"\u003e${p.tier}\u003c/span\u003e\u003c/td\u003e
       \u003ctd\u003e\u003ca href="${mapLink}" target="_blank" rel="noopener"\u003e${escapeHtml(p.caseNumber)}\u003c/a\u003e\u003c/td\u003e
       \u003ctd\u003e${escapeHtml(p.fullAddress)}\u003c/td\u003e
       \u003ctd\u003e${escapeHtml(p.city)}\u003c/td\u003e
       \u003ctd\u003e${escapeHtml(p.zip)}\u003c/td\u003e
-      \u003ctd\u003e${escapeHtml(revite)}\u003c/td\u003e
+      \u003ctd\u003e${p.revitalizationArea ? escapeHtml(p.revitalizationArea) : "—"}\u003c/td\u003e
       \u003ctd\u003e${val}\u003c/td\u003e
       \u003ctd\u003e${rent}\u003c/td\u003e
       \u003ctd\u003e${equity}\u003c/td\u003e
       \u003ctd\u003e${yieldStr}\u003c/td\u003e
-      \u003ctd\u003e${cap}\u003c/td\u003e
+      \u003ctd\u003e${capStr}\u003c/td\u003e
+      \u003ctd\u003e${ptype}\u003c/td\u003e
       \u003ctd\u003e${latLon}\u003c/td\u003e
-      \u003ctd\u003e\u003cdiv class="notes"\u003e${notes}\u003c/div\u003e\u003c/td\u003e
+      \u003ctd title="${escapeHtml(notes)}" style="font-size:11px; opacity:0.7;"\u003e${notes.slice(0, 60)}${notes.length > 60 ? "…" : ""}\u003c/td\u003e
     \u003c/tr\u003e`;
-    })
-    .join("");
+  }
 
   return `\u003c!DOCTYPE html\u003e
 \u003chtml lang="en"\u003e
@@ -75,8 +76,6 @@ export function renderHtml(properties: EnrichedProperty[]): string {
   .tier-c .tier-badge{background:rgba(148,163,184,0.15);color:#94a3b8}
   a{color:#60a5fa;text-decoration:none}
   a:hover{text-decoration:underline}
-  .notes{display:flex;flex-wrap:wrap;gap:0.35rem}
-  .note-tag{font-size:0.7rem;background:var(--card);border:1px solid var(--border);padding:0.15rem 0.35rem;border-radius:4px;color:var(--muted)}
 \u003c/style\u003e
 \u003c/head\u003e
 \u003cbody\u003e
@@ -89,7 +88,7 @@ export function renderHtml(properties: EnrichedProperty[]): string {
 \u003c/div\u003e
 \u003ctable\u003e
   \u003cthead\u003e
-    \u003ctr\u003e\u003cth\u003eTier\u003c/th\u003e\u003cth\u003eCase\u003c/th\u003e\u003cth\u003eAddress\u003c/th\u003e\u003cth\u003eCity\u003c/th\u003e\u003cth\u003eZip\u003c/th\u003e\u003cth\u003eRevite\u003c/th\u003e\u003cth\u003eEst. Value\u003c/th\u003e\u003cth\u003eEst. Rent\u003c/th\u003e\u003cth\u003eEquity%\u003c/th\u003e\u003cth\u003eYield\u003c/th\u003e\u003cth\u003eCap%\u003c/th\u003e\u003cth\u003eLat/Lon\u003c/th\u003e\u003cth\u003eNotes\u003c/th\u003e\u003c/tr\u003e
+    \u003ctr\u003e\u003cth\u003eTier\u003c/th\u003e\u003cth\u003eCase\u003c/th\u003e\u003cth\u003eAddress\u003c/th\u003e\u003cth\u003eCity\u003c/th\u003e\u003cth\u003eZip\u003c/th\u003e\u003cth\u003eRevite\u003c/th\u003e\u003cth\u003eEst. Value\u003c/th\u003e\u003cth\u003eEst. Rent\u003c/th\u003e\u003cth\u003eEquity%\u003c/th\u003e\u003cth\u003eYield\u003c/th\u003e\u003cth\u003eCap%\u003c/th\u003e\u003cth\u003eType\u003c/th\u003e\u003cth\u003eLat/Lon\u003c/th\u003e\u003cth\u003eNotes\u003c/th\u003e\u003c/tr\u003e
   \u003c/thead\u003e
   \u003ctbody\u003e${rows}
   \u003c/tbody\u003e

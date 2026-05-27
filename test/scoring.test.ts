@@ -16,7 +16,7 @@ describe("scoring", () => {
   test("revite + liquid + value = Tier A", () => {
     const scored = scoreProperty(
       { caseNumber: "001", fullAddress: "", city: "", zip: "", state: "FL", lat: null, lon: null, streetNumber: "", directionPrefix: null, streetName: "", revitalizationArea: "Some Area" },
-      { estimatedValue: 300000, estimatedRent: 2000, beds: 3, baths: 2, sqft: 1500, source: "rentcast", fetchedAt: "2026-01-01" },
+      { estimatedValue: 300000, estimatedRent: 2000, beds: 3, baths: 2, sqft: 1500, propertyType: "Single Family", source: "rentcast", fetchedAt: "2026-01-01" },
       200000
     );
     expect(scored.tier).toBe("A");
@@ -28,7 +28,7 @@ describe("scoring", () => {
   test("no revite, no value, no list = Tier C", () => {
     const scored = scoreProperty(
       { caseNumber: "002", fullAddress: "", city: "", zip: "", state: "FL", lat: null, lon: null, streetNumber: "", directionPrefix: null, streetName: "", revitalizationArea: null },
-      { estimatedValue: null, estimatedRent: null, beds: null, baths: null, sqft: null, source: "none", fetchedAt: "2026-01-01" },
+      { estimatedValue: null, estimatedRent: null, beds: null, baths: null, sqft: null, propertyType: null, source: "none", fetchedAt: "2026-01-01" },
       null
     );
     expect(scored.tier).toBe("C");
